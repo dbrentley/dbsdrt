@@ -4,6 +4,7 @@
 #include "queue.h"
 #include "signal_handler.h"
 
+#include <ncurses.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
@@ -33,6 +34,15 @@ void receive_callback(void *samples, size_t n_samples,
     }
 }
 
+void clear_row_block(unsigned int row, unsigned int col, int count) {
+    move(row, col);
+    refresh();
+    for (int x = 0; x < count; x++) {
+        delch();
+    }
+    refresh();
+}
+
 void *queue_processor() {
     while (!state.should_close && device_is_alive()) {
         float *line = queue_pop(&mag_line_queue);
@@ -40,15 +50,50 @@ void *queue_processor() {
             state.last_line = line;
         }
         free(line);
-        // this shouldn't happen but just in case
         if (queue_size(&mag_line_queue) > 25000) {
             queue_pop(&mag_line_queue);
         }
     }
 }
 
+void display_queue() {
+    clear_row_block(0, state.window.cols - 9, 9);
+    move(0, state.window.cols - 9);
+    printw("Q: %d", queue_size(&mag_line_queue));
+    refresh();
+}
+
+void keyboard_input(int ch) {
+    switch (ch) {
+    case ERR: // no key pressed
+        break;
+    case 27: // esc
+        clear();
+        mvprintw(0, 0, "Exiting...");
+        refresh();
+        state.should_close = true;
+        break;
+    default:
+        break;
+    }
+}
+
+void check_terminal_size() {
+    getmaxyx(stdscr, state.window.rows, state.window.cols);
+    if (state.window.rows != state.window.prev_rows ||
+        state.window.cols != state.window.prev_cols) {
+        clear();
+        state.window.prev_rows = state.window.rows;
+        state.window.prev_cols = state.window.cols;
+    }
+}
+
+bool tick(clock_t time_begin, clock_t time_current) {
+    return time_current >= (time_begin + 1 * CLOCKS_PER_SEC);
+}
+
 int main(int argc, char *argv[]) {
-    state.should_close = 0;
+    state.should_close = false;
 
     signal(SIGABRT, handle_sigabrt);
     signal(SIGFPE, handle_sigfpe);
@@ -72,20 +117,31 @@ int main(int argc, char *argv[]) {
     pthread_t queue_processing_thread;
     pthread_create(&queue_processing_thread, NULL, queue_processor, NULL);
 
+    initscr();
+    cbreak();
+    noecho();
+    nodelay(stdscr, true);
+    keypad(stdscr, true);
+    curs_set(false);
+
     clock_t time_begin = clock();
     while (!state.should_close) {
-        // do stuff
+        int ch = getch();
+        keyboard_input(ch);
 
         clock_t time_current = clock();
-        if (time_current >= (time_begin + 1 * CLOCKS_PER_SEC)) {
+        if (tick(time_begin, time_current)) {
+            check_terminal_size();
+            display_queue();
             for (int i = 0; i < FFT_SIZE; i++) {
-                printf("%f ", state.last_line[i]);
+                mvprintw(0, 0, "%f ", state.last_line[i]);
+                refresh();
             }
-            printf("\n");
             time_begin = time_current;
         }
     }
 
+    endwin();
     pthread_join(queue_processing_thread, NULL);
     device_destroy();
     fft_destroy();

@@ -7,8 +7,16 @@
 
 #include <stdbool.h>
 
+typedef struct window {
+    unsigned int rows;
+    unsigned int cols;
+    unsigned int prev_rows;
+    unsigned int prev_cols;
+} window_t;
+
 typedef struct state {
     bool should_close;
+    window_t window;
     float *last_line;
 } state_t;
 
