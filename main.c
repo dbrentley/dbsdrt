@@ -48,6 +48,7 @@ void *queue_processor() {
 }
 
 int main(int argc, char *argv[]) {
+    state.should_close = 0;
 
     signal(SIGABRT, handle_sigabrt);
     signal(SIGFPE, handle_sigfpe);
@@ -55,9 +56,6 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     signal(SIGSEGV, handle_sigsegv);
     signal(SIGTERM, handle_sigterm);
-
-    state.should_close = 0;
-    clock_t time_begin = clock();
 
     queue_init(&mag_line_queue);
     fft_init(FFT_SIZE);
@@ -74,12 +72,17 @@ int main(int argc, char *argv[]) {
     pthread_t queue_processing_thread;
     pthread_create(&queue_processing_thread, NULL, queue_processor, NULL);
 
+    clock_t time_begin = clock();
     while (!state.should_close) {
-        time_t timer = clock() - time_begin;
-        long msec = timer * 1000 / CLOCKS_PER_SEC;
-        if (msec > 1000) {
-            printf("Queue size: %zu\n", queue_size(&mag_line_queue));
-            time_begin = clock();
+        // do stuff
+
+        clock_t time_current = clock();
+        if (time_current >= (time_begin + 1 * CLOCKS_PER_SEC)) {
+            for (int i = 0; i < FFT_SIZE; i++) {
+                printf("%f ", state.last_line[i]);
+            }
+            printf("\n");
+            time_begin = time_current;
         }
     }
 
