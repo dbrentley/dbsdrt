@@ -5,7 +5,7 @@ SDR software for the HackRF One
 ## Dependencies
 
 ```bash
-$ sudo apt install make libncurses-dev libhackrf-dev libfftw3-dev 
+$ sudo apt install cmake libncurses-dev libhackrf-dev libfftw3-dev 
 ```
 
 ## Build
