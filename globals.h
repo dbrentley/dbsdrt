@@ -8,10 +8,10 @@
 #include <stdbool.h>
 
 typedef struct window {
-    unsigned int rows;
-    unsigned int cols;
-    unsigned int prev_rows;
-    unsigned int prev_cols;
+    int rows;
+    int cols;
+    int prev_rows;
+    int prev_cols;
 } window_t;
 
 typedef struct state {

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #define DEFAULT_SAMPLE_RATE 20000000
@@ -34,12 +35,13 @@ void receive_callback(void *samples, size_t n_samples,
     }
 }
 
-void clear_row_block(unsigned int row, unsigned int col, int count) {
-    move(row, col);
+void clear_row_block(int y, int x, int count) {
+    move(y, x);
     refresh();
-    for (int x = 0; x < count; x++) {
+    for (int i = 0; i < count; i++) {
         delch();
     }
+    move(y, x);
     refresh();
 }
 
@@ -57,17 +59,29 @@ void *queue_processor() {
 }
 
 void display_queue() {
-    clear_row_block(0, state.window.cols - 9, 9);
-    move(0, state.window.cols - 9);
-    printw("Q: %d", queue_size(&mag_line_queue));
+    mvprintw(0, state.window.cols - 10, "[Q: %5d]",
+             queue_size(&mag_line_queue));
+    refresh();
+}
+
+void display_menu() {
+    mvprintw(state.window.rows - 1, 0, "[q] Quit");
+    refresh();
+}
+
+void display_terminal_size() {
+    mvprintw(state.window.rows - 1, state.window.cols - 10, "[%3d, %3d]",
+             state.window.cols, state.window.rows);
     refresh();
 }
 
 void keyboard_input(int ch) {
+    if (ch == -1) {
+        return;
+    }
     switch (ch) {
-    case ERR: // no key pressed
-        break;
-    case 27: // esc
+    case 113: // q
+    case 27:  // esc
         clear();
         mvprintw(0, 0, "Exiting...");
         refresh();
@@ -76,6 +90,9 @@ void keyboard_input(int ch) {
     default:
         break;
     }
+    //    clear_row_block(1, 4, 10);
+    //    mvprintw(1, 0, "Key: %d", ch);
+    //    refresh();
 }
 
 void check_terminal_size() {
@@ -132,9 +149,12 @@ int main(int argc, char *argv[]) {
         clock_t time_current = clock();
         if (tick(time_begin, time_current)) {
             check_terminal_size();
+            display_terminal_size();
             display_queue();
+            display_menu();
+
             for (int i = 0; i < FFT_SIZE; i++) {
-                mvprintw(0, 0, "%f ", state.last_line[i]);
+                mvprintw(0, 0, "[%8.3f]", state.last_line[i]);
                 refresh();
             }
             time_begin = time_current;
