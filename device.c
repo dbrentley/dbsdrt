@@ -10,11 +10,15 @@
 #define BLOCKS_PER_TRANSFER 16
 #define SAMPLES_PER_BLOCK 8192
 #define BYTES_PER_SAMPLE 2
-#define HRF_ASSERT(x, m) if (x) { fprintf(stderr, (m), hackrf_error_name(err)); }
+#define HRF_ASSERT(x, m)                                                       \
+    if (x) {                                                                   \
+        fprintf(stderr, (m), hackrf_error_name(err));                          \
+    }
 
 static int rx_callback(hackrf_transfer *transfer);
 
 static device_rx_callback callback = NULL;
+
 static hackrf_device *device = NULL;
 static hackrf_device_list_t *devices = NULL;
 
@@ -95,7 +99,6 @@ bool device_is_alive() {
 
 static int rx_callback(hackrf_transfer *transfer) {
     callback(transfer->buffer, SAMPLES_PER_BLOCK * BLOCKS_PER_TRANSFER,
-            BYTES_PER_SAMPLE);
-
+             BYTES_PER_SAMPLE, transfer->rx_ctx);
     return 0;
 }

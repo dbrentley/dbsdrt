@@ -5,11 +5,24 @@
 #ifndef DBSDR_DEVICE_H
 #define DBSDR_DEVICE_H
 
+#include <libhackrf/hackrf.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void (*device_rx_callback)(void *, size_t, size_t);
+typedef struct {
+    char chunk_id[4];
+    uint32_t chunk_size;
+} data_chunk_t;
+
+typedef struct {
+    hackrf_device *device;
+    int signalling_fd;
+    void *buffer;
+    uint64_t buffer_size;
+} hackrf_context_t;
+
+typedef void (*device_rx_callback)(void *, size_t, size_t, void *);
 
 bool device_init(void);
 
